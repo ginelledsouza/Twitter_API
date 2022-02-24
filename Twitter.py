@@ -1,5 +1,6 @@
 import tweepy
 import pandas as pd
+from datetime import datetime
 
 #TWITTER CREDENTIAL
 consumer_key = ""
@@ -13,25 +14,44 @@ api = tweepy.API(auth)
 
 Users = ["Twitter","YouTube","Meta","Snapchat"]
 
-name = []
-username = []
-description = []
-status = []
-following = []
-followers = []
+UsersData = pd.DataFrame()
+
+def get_all_tweets(screen_name):
+
+    alltweets = []  
+    new_tweets = api.user_timeline(screen_name = screen_name,count=200)
+    
+    alltweets.extend(new_tweets)
+    
+    usertweets = [tweet.text for tweet in alltweets]
+
+    target=screen_name
+    item = api.get_user(target)
+    
+    name=item.name
+    username=item.screen_name
+    description=item.description
+    tweets=int(item.statuses_count)
+    following=int(item.friends_count)
+    followers=int(item.followers_count)
+    
+    account_created_date = item.created_at
+    delta = datetime.utcnow() - account_created_date
+    account_age_days = delta.days
+    
+    account_age=int(account_age_days)
+    
+    avg_tweets=0
+    if account_age_days > 0:
+        avg_tweets="%.2f"%(float(tweets)/float(account_age_days))
+        
+    
+    Data = pd.DataFrame({"Name":[name],"Handle":[username],"Bio":[description],"Followers":[followers],"Following":[following],
+                         "Account Age":[account_age],"Average Tweets":[avg_tweets],"Tweets":[usertweets]})
+
+    return Data
 
 for i in Users:
     print(i)
-
-    item = api.get_user(i)
-    
-    name.append(item.name)
-    username.append(item.screen_name)
-    description.append(item.description)
-    status.append(int(item.statuses_count))
-    following.append(int(item.friends_count))
-    followers.append(int(item.followers_count))
-    
-
-Users = pd.DataFrame({"Name":name,"Twitter Handle":username,"Bio":description,
-                      "Tweets":status,"Following":following,"Followers":followers})
+    Data = get_all_tweets(i)
+    UsersData = UsersData.append(Data,ignore_index=True)
