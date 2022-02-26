@@ -44,9 +44,9 @@ def get_all_tweets(screen_name):
     avg_tweets=0
     if account_age_days > 0:
         avg_tweets="%.2f"%(float(tweets)/float(account_age_days))
-        
     
-    Data = pd.DataFrame({"Name":[name],"Handle":[username],"Bio":[description],"Followers":[followers],"Following":[following],
+    
+    Data = pd.DataFrame({"User Name":[name],"User Handle":[username],"Bio":[description],"Followers":[followers],"Following":[following],
                          "Account Age":[account_age],"Average Tweets":[avg_tweets],"Tweets":[usertweets]})
 
     return Data
