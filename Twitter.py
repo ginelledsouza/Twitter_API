@@ -45,7 +45,6 @@ def get_all_tweets(screen_name):
     if account_age_days > 0:
         avg_tweets="%.2f"%(float(tweets)/float(account_age_days))
     
-    
     Data = pd.DataFrame({"User Name":[name],"User Handle":[username],"Bio":[description],"Followers":[followers],"Following":[following],
                          "Account Age":[account_age],"Average Tweets":[avg_tweets],"Tweets":[usertweets]})
 
@@ -55,3 +54,13 @@ for i in Users:
     print(i)
     Data = get_all_tweets(i)
     UsersData = UsersData.append(Data,ignore_index=True)
+    
+Tweets = pd.DataFrame()
+
+for i in range(len(UsersData)):
+    Message = UsersData["Tweets"][i]
+    Tweets.insert(Tweets.shape[1],UsersData["User Name"][i],Message) 
+    
+with pd.ExcelWriter("Output/Twitter.xlsx") as writer:
+    UsersData.to_excel(writer, sheet_name='Users Data', index=False)
+    Tweets.to_excel(writer, sheet_name='Tweets', index=False) 
