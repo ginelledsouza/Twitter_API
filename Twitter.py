@@ -81,3 +81,56 @@ for i in range(len(UsersData)):
 with pd.ExcelWriter("Output/Twitter.xlsx") as writer:
     UsersData.to_excel(writer, sheet_name='Users Data', index=False)
     Tweets.to_excel(writer, sheet_name='Tweets', index=False) 
+    
+############# Twitter User Data using User Access Token [BONUS CONTENT] #############    
+    
+from requests_oauthlib import OAuth1Session
+import json
+
+consumer_key = ""
+consumer_secret = ""
+
+access_token = ""
+access_token_secret = ""
+
+fields = "id,created_at,name,username,verified,description,location,protected,profile_image_url,public_metrics"
+params = {"user.fields": fields}
+
+# Make the request
+oauth = OAuth1Session(
+    consumer_key,
+    client_secret=consumer_secret,
+    resource_owner_key=access_token,
+    resource_owner_secret=access_token_secret,
+)
+
+response = oauth.get("https://api.twitter.com/2/users/me", params=params)
+
+if response.status_code != 200:
+    raise Exception(
+        "Request returned an error: {} {}".format(response.status_code, response.text)
+    )
+
+print("Response code: {}".format(response.status_code))
+
+json_response = response.json()
+
+print(json.dumps(json_response, indent=4, sort_keys=True))
+
+tid = [json_response["data"]["id"]]
+created_at = [json_response["data"]["created_at"]]
+name = [json_response["data"]["name"]]
+username = [json_response["data"]["username"]]
+verified = [json_response["data"]["verified"]]
+description = [json_response["data"]["description"]]
+protected = [json_response["data"]["protected"]]
+profile_image_url = [json_response["data"]["profile_image_url"]]
+followers = [json_response["data"]["public_metrics"]["followers_count"]]
+following_count = [json_response["data"]["public_metrics"]["following_count"]]
+tweet_count = [json_response["data"]["public_metrics"]["tweet_count"]]
+
+Twitter_Personal = pd.DataFrame({"Twitter ID":tid,"Created At":created_at,"Name":name,
+                                "Username":username,"Verified":verified,"Description":description,
+                                "Protected":protected,"Profile Image":profile_image_url,
+                                "Followers":followers,"Following":following_count,
+                                "Tweet":tweet_count})
