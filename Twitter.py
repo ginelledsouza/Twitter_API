@@ -1,4 +1,5 @@
 import tweepy
+import requests
 import pandas as pd
 from datetime import datetime
 
@@ -32,6 +33,7 @@ def get_all_tweets(screen_name):
     item = api.get_user(target)
     
     name=item.name
+    twitterid=item.id
     username=item.screen_name
     description=item.description
     tweets=int(item.statuses_count)
@@ -48,7 +50,7 @@ def get_all_tweets(screen_name):
     if account_age_days > 0:
         avg_tweets="%.2f"%(float(tweets)/float(account_age_days))
     
-    Data = pd.DataFrame({"User Name":[name],"User Handle":[username],"Bio":[description],"Created At":[account_created_date],"Followers":[followers],"Following":[following],
+    Data = pd.DataFrame({"User Name":[name],"Twitter ID":[twitterid],"User Handle":[username],"Bio":[description],"Created At":[account_created_date],"Followers":[followers],"Following":[following],
                          "Account Age":[account_age],"Average Tweets":[avg_tweets],"Tweets":[usertweets],"Tweets Created":[usertweetscreated]})
 
     return Data
@@ -82,55 +84,55 @@ with pd.ExcelWriter("Output/Twitter.xlsx") as writer:
     UsersData.to_excel(writer, sheet_name='Users Data', index=False)
     Tweets.to_excel(writer, sheet_name='Tweets', index=False) 
     
-############# Twitter User Data using User Access Token [BONUS CONTENT] #############    
+############# Twitter API v2 [BONUS CONTENT] #############    
     
-from requests_oauthlib import OAuth1Session
-import json
-
 consumer_key = ""
 consumer_secret = ""
-
+bearer_token = ""
 access_token = ""
 access_token_secret = ""
 
-fields = "id,created_at,name,username,verified,description,location,protected,profile_image_url,public_metrics"
-params = {"user.fields": fields}
+def bearer_oauth(r):
 
-# Make the request
-oauth = OAuth1Session(
-    consumer_key,
-    client_secret=consumer_secret,
-    resource_owner_key=access_token,
-    resource_owner_secret=access_token_secret,
-)
+    r.headers["Authorization"] = f"Bearer {bearer_token}"
+    r.headers["User-Agent"] = "v2UserLookupPython"
+    return r
 
-response = oauth.get("https://api.twitter.com/2/users/me", params=params)
+def connect_to_endpoint(url, params):
+    response = requests.request("GET", url, auth=bearer_oauth, params=params)
 
-if response.status_code != 200:
-    raise Exception(
-        "Request returned an error: {} {}".format(response.status_code, response.text)
-    )
+    if response.status_code != 200:
+        print(response.status_code)
+        raise Exception(
+            "Request returned an error: {} {}".format(
+                response.status_code, response.text
+            )
+        )
+    return response.json()
 
-print("Response code: {}".format(response.status_code))
+def user_info(user_id):
+    
+    fields = "id,created_at,name,username,verified,description,location,protected,profile_image_url,public_metrics"
+    params = {"user.fields": fields}
 
-json_response = response.json()
+    url =  "https://api.twitter.com/2/users/{}".format(user_id)
+    
+    json_response = connect_to_endpoint(url, params)
 
-print(json.dumps(json_response, indent=4, sort_keys=True))
+    public_metrics = json_response['data'].pop("public_metrics")
+    user_data = json_response['data']
 
-tid = [json_response["data"]["id"]]
-created_at = [json_response["data"]["created_at"]]
-name = [json_response["data"]["name"]]
-username = [json_response["data"]["username"]]
-verified = [json_response["data"]["verified"]]
-description = [json_response["data"]["description"]]
-protected = [json_response["data"]["protected"]]
-profile_image_url = [json_response["data"]["profile_image_url"]]
-followers = [json_response["data"]["public_metrics"]["followers_count"]]
-following_count = [json_response["data"]["public_metrics"]["following_count"]]
-tweet_count = [json_response["data"]["public_metrics"]["tweet_count"]]
+    detailed = {}
 
-Twitter_Personal = pd.DataFrame({"Twitter ID":tid,"Created At":created_at,"Name":name,
-                                "Username":username,"Verified":verified,"Description":description,
-                                "Protected":protected,"Profile Image":profile_image_url,
-                                "Followers":followers,"Following":following_count,
-                                "Tweet":tweet_count})
+    detailed.update(user_data)
+    detailed.update(public_metrics)
+
+    detailed = pd.DataFrame(detailed, index=[0])
+
+    return detailed
+
+Data = pd.DataFrame()
+
+for i in UsersData['Twitter ID'].tolist():
+    print(UsersData['Twitter ID'].tolist().index(i) + 1)
+    Data = Data.append(user_info(i),ignore_index=True)
